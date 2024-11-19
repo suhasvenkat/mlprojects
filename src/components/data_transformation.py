@@ -23,6 +23,7 @@ class DataTransformation:
         '''
         This Function is Responsible for Data transformation 
         '''
+        
         try:
             numerical_columns = ["writing_score", "reading_score"]
             categorical_columns = ["gender", "race_ethnicity", "parental_level_of_education",
@@ -38,7 +39,7 @@ class DataTransformation:
             cat_pipeline = Pipeline(
                 steps=[
                     ("imputer", SimpleImputer(strategy="most_frequent")),
-                    ("one_hot_encoder", OneHotEncoder()),
+                    ("one_hot_encoder", OneHotEncoder(handle_unknown='ignore')),
                     ("scaler", StandardScaler(with_mean=False))  # Set with_mean=False
                 ]
             )
@@ -52,6 +53,7 @@ class DataTransformation:
                     ("cat_pipeline", cat_pipeline, categorical_columns)  # Corrected name
                 ]
             )
+            
             return preprocessor
         except Exception as e:
             raise CustomException(e, sys)
@@ -60,6 +62,7 @@ class DataTransformation:
         try:
             train_df = pd.read_csv(train_path)
             test_df = pd.read_csv(test_path)
+
             logging.info("Read Train and test data completed")
             logging.info("Obtaining preprocessing object")
 
@@ -69,7 +72,11 @@ class DataTransformation:
             input_feature_train_df = train_df.drop(columns=[target_column_name], axis=1)
             target_feature_train_df = train_df[target_column_name]
             input_feature_test_df = test_df.drop(columns=[target_column_name], axis=1)
-            target_feature_test_df = test_df[target_column_name]  # Corrected name
+            target_feature_test_df = test_df[target_column_name]
+
+            # Fill missing values explicitly before transformation (if required)
+            input_feature_train_df.fillna("Unknown", inplace=True)
+            input_feature_test_df.fillna("Unknown", inplace=True)
 
             logging.info("Applying preprocessing object on training and testing dataframes")
             input_feature_train_arr = preprocessing_obj.fit_transform(input_feature_train_df)
@@ -83,6 +90,7 @@ class DataTransformation:
                 file_path=self.data_transformation_config.preprocessor_ob_file_path,
                 obj=preprocessing_obj
             )
+
             return (
                 train_arr, test_arr, self.data_transformation_config.preprocessor_ob_file_path)
         except Exception as e:
